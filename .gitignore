@@ -1,0 +1,7 @@
+# Build output and dependencies for each language
+target/
+node_modules/
+bin/
+obj/
+__pycache__/
+.venv/

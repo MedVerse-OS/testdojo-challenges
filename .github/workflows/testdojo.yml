@@ -1,0 +1,70 @@
+# Official TestDojo challenge run, started by "Run test" on testdojo.dev.
+# Don't edit this file: TestDojo only counts results produced by this exact workflow.
+name: TestDojo challenge
+run-name: ${{ inputs.challenge }} · ${{ inputs.stack }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      challenge:
+        description: Challenge (for example registration-rookie)
+        required: true
+        type: string
+      stack:
+        description: Framework and language
+        required: true
+        type: choice
+        options: [selenium-java, selenium-python, selenium-csharp, playwright-js, playwright-ts, playwright-java]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ inputs.challenge }} (${{ inputs.stack }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Get your code
+        uses: actions/checkout@v4
+        with:
+          path: learner
+
+      - name: Get the official checks
+        uses: actions/checkout@v4
+        with:
+          repository: testdojo-dev/challenge-checks
+          path: checks
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - if: endsWith(inputs.stack, '-java')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - if: inputs.stack == 'selenium-python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - if: inputs.stack == 'selenium-csharp'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install the checks
+        working-directory: checks
+        run: npm install --no-audit --no-fund --loglevel=error
+
+      - name: Run the challenge
+        working-directory: checks
+        env:
+          CHALLENGE: ${{ inputs.challenge }}
+          STACK: ${{ inputs.stack }}
+          SOLUTION_DIR: ../learner
+          CHROME_CHANNEL: chrome
+        run: npx playwright test "tests/${CHALLENGE}.spec.ts"
